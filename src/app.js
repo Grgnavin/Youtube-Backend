@@ -19,6 +19,12 @@ import userRoute from "./routes/user.routes.js";
 
 
 app.use("/api/v1/users", userRoute);
+app.get("/api/v1/", (req,res) => {
+    res.status(201).json({
+        message: "Welcome to the Youtube backend"
+    })
+});
+
 
 
 export { app }
