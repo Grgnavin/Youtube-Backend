@@ -4,9 +4,9 @@ class ApiResponse {
         statusCode,
         message = "Sucess"
     ){
-        this.statusCode = data
+        this.statusCode = statusCode
+        this.data = data
         this.message = message
-        this.data = statusCode
         this.success = statusCode < 400
     }
 }
