@@ -1,7 +1,7 @@
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError} from "../utils/ApiError.js";
 import { User } from "../models/user.models.js";
-import { uploadOnCLoudinary } from "../utils/cloudinary.js";
+import { uploadOnCLoudinary, deleteAvatarFile } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken";
 import util from "util";
@@ -255,7 +255,12 @@ const changePassword = asyncHandler(async(req,res) => {
 })
 
 const getUser = asyncHandler(async(req,res) => {
-    return res.status(200).json( new ApiResponse(req.user, 200, "Here are the user details.."))
+    return res.status(200).json( 
+        new ApiResponse(
+                    req.user,
+                    200,
+                    "Here are the user details..")
+    )
 })
 
 const updateAccountDetails = asyncHandler(async(req,res) => {
@@ -296,14 +301,30 @@ const updateAvatarFile = asyncHandler(async(req,res) => {
         throw new ApiError(401, "Error while uploading the files in cloudinary")
     }
 
-    const user = await User.findByIdAndUpdate(
-        req.user._id,
-        { 
-            $set: {
-                avatar: avatar.url
-        } },
-        { new: true }
-    ).select("-password")
+    // const user = await User.findByIdAndUpdate(
+    //     req.user._id,
+    //     { 
+    //         $set: {
+    //             avatar: avatar.url
+    //     } },
+    //     { new: true }
+    // ).select("-password")
+
+    const user = await User.findById(req.user._id).select("-password");
+    const oldAvatarUrl = user.avatar;
+
+     // Extract the public ID from the old avatar URL
+    const oldAvatarPublicId = oldAvatarUrl ? oldAvatarUrl.split('/').pop().split('.')[0] : null;
+
+    user.avatar = avatar.url
+    await user.save({ validateBeforeSave: false })
+
+    
+    // If there's an old avatar, delete it
+    if (oldAvatarPublicId) {
+        await deleteAvatarFile(oldAvatarPublicId);
+    }
+
 
     return res
             .status(200)

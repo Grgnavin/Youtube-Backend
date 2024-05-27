@@ -1,5 +1,6 @@
 import {v2 as cloudinary} from 'cloudinary';
 import fs from "fs";
+import { ApiError } from './ApiError';
 
 cloudinary.config({ 
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME, 
@@ -19,9 +20,22 @@ const uploadOnCLoudinary = async (filepath) => {
         fs.unlinkSync(filepath)
         return response;
     } catch (error) {
-        fs.unlinkSync(filepath)  //remove the locally saced temporary file as the opretaion got failed
+        fs.unlinkSync(filepath)  //remove the locally saved temporary file as the operation got failed
         return null
 }
 }
 
-export { uploadOnCLoudinary }
+const deleteFileFromCloudinary = async(publicId) => {
+    try {
+        const response = cloudinary.uploader.destroy(publicId);
+        return response;
+    } catch (error) {
+        throw new ApiError(500, "Error while deleting file from cloudinary")
+    }
+}
+
+
+export { 
+    uploadOnCLoudinary,
+    deleteFileFromCloudinary
+}
