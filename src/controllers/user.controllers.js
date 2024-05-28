@@ -5,7 +5,7 @@ import { uploadOnCLoudinary, deleteAvatarFile } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken";
 import util from "util";
-import { channel } from "diagnostics_channel";
+import mongoose from "mongoose";
 
 
 const generateAccessAndRefreshToken = async(userId) => {
@@ -422,6 +422,8 @@ const channel = await User.aggregate([
         }
     ])
 
+    console.log(channel);
+    
     if (!channel?.length) {
         throw new ApiError(404, "Channel doesn't exists..")
     }
@@ -432,7 +434,55 @@ const channel = await User.aggregate([
                 new ApiResponse(channel[0], 201, "USer channel fetched successfully")
             )
         })
-        console.log(channel);
+
+const getWatchHistory = asyncHandler(async (req, res) => {
+        const user = await User.aggregate([
+                    {
+                        $match: {
+                            _id: new mongoose.Types.ObjectId(req.user._id)
+                        }
+                    },
+                    {
+                        $lookup: {
+                            from: "videos",
+                            localField: "watchHistory",
+                            foreignField: "_id",
+                            as: "watchHistory",
+                            pipeline: [
+                                {
+                                    $lookup: {
+                                        from: "users",
+                                        localField: "owner",
+                                        foreignField: "_id",
+                                        as: "owner",
+                                        pipeline: [
+                                            {
+                                                $project: {
+                                                    fullName: 1,
+                                                    username: 1,
+                                                    avatar: 1
+                                                }
+                                            },
+                                            {
+                                                $addFields: {
+                                                    owner: {
+                                                        $first: "$owner"
+                                                    }
+                                                }
+                                            }
+                                        ]
+                                    }
+                                }
+                            ]
+                        }
+                    }
+    ]);
+        return res
+                .status(200)
+                .json(
+                    new ApiResponse(user[0].watchHistory, 200, "Watched history fetched successfully")
+                );
+});
 
 export { 
     registerUser,
@@ -444,5 +494,6 @@ export {
     updateAccountDetails,
     updateAvatarFile,
     updateCoverImage,
-    getUserChannelProfile
+    getUserChannelProfile,
+    getWatchHistory
 }
