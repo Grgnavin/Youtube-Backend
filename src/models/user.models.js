@@ -41,6 +41,11 @@ const userSchema = new mongoose.Schema({
         type: String,
         required: [true, "Password is required"],
     },
+    tweets: [
+        { 
+            type: Schema.Types.ObjectId, 
+            ref: 'Tweet' 
+    }],
     refreshToken: {
         type: String
     }
