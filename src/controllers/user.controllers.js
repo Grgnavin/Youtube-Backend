@@ -1,7 +1,7 @@
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError} from "../utils/ApiError.js";
 import { User } from "../models/user.models.js";
-import { uploadOnCLoudinary, deleteAvatarFile } from "../utils/cloudinary.js";
+import { uploadOnCLoudinary, deleteFileFromCloudinary } from "../utils/cloudinary.js"; 
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken";
 import util from "util";
@@ -227,9 +227,9 @@ try {
 })
 
 const changePassword = asyncHandler(async(req,res) => {
-    const { oldPassword, newPassword, confirmPasword } = req.body;
+    const { oldPassword, newPassword, confirmPassword } = req.body;
 
-    if (newPassword !== confirmPasword) {
+    if (newPassword !== confirmPassword) {
         throw new ApiError(402, "The newpassword and confirm password should be same..")
     }
 
@@ -252,7 +252,6 @@ const changePassword = asyncHandler(async(req,res) => {
         .json(
             new ApiResponse({}, 201, "The password has been changed sucessfully")
         )
-
 })
 
 const getUser = asyncHandler(async(req,res) => {
@@ -267,7 +266,7 @@ const getUser = asyncHandler(async(req,res) => {
 const updateAccountDetails = asyncHandler(async(req,res) => {
     const { newfullName, newEmail } = req.body
 
-    if (!fullName || !email) {
+    if (!newfullName || !newEmail) {
         throw new ApiError(400, "All fields are required")
     }
 
@@ -275,8 +274,8 @@ const updateAccountDetails = asyncHandler(async(req,res) => {
         req.user?._id,
         { 
             $set: {
-                newfullName,
-                newEmail
+                fullName: newfullName,
+                email: newEmail
             }
         },
         { new: true }
@@ -323,7 +322,7 @@ const updateAvatarFile = asyncHandler(async(req,res) => {
     
     // If there's an old avatar, delete it
     if (oldAvatarPublicId) {
-        await deleteAvatarFile(oldAvatarPublicId);
+        await deleteFileFromCloudinary(oldAvatarPublicId);
     }
 
 
@@ -433,7 +432,7 @@ const channel = await User.aggregate([
             .json(
                 new ApiResponse(channel[0], 201, "USer channel fetched successfully")
             )
-        })
+})
 
 const getWatchHistory = asyncHandler(async (req, res) => {
         const user = await User.aggregate([
