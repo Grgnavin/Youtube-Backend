@@ -1,9 +1,5 @@
 import { Router } from 'express';
-import {
-    getSubscribedChannels,
-    getUserChannelSubscribers,
-    toggleSubscription,
-} from "../controllers/subscription.controller.js"
+import { getSubscribedChannels, toggleSubscription, getUserChannelSubscribers } from "../controllers/subscription.contollers.js"
 import {verifyJWT} from "../middlewares/auth.middleware.js"
 
 const router = Router();
