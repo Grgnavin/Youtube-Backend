@@ -7,7 +7,11 @@ import {asyncHandler} from "../utils/asyncHandler.js"
 
 const createTweet = asyncHandler(async (req, res) => {
     //TODO: create tweet
-    
+    const { content } = req.body;
+
+    if (!content || content.length === 0) {
+        throw new ApiError(402, "Conetent field is required and content can't be empty")
+    }
 
 })
 
