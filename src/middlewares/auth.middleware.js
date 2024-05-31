@@ -6,14 +6,14 @@ import jwt from  "jsonwebtoken";
 
 export const verifyJWT = asyncHandler(async(req, _ , next) => {
     try {
-        const token = req.cookies.accessToken || (req.headers.authorization ? req.headers.authorization.replace("Bearer ", "") : "");
-        
+        const token = req.cookies?.accessToken || req.header["Authorization"]?.replace("Bearer ", "")
+        console.log(req.cookie);
+        console.log('Extracted Token:', token);
         if (!token) {
             throw new ApiError(401, "Unauthorized Request & The token must be a string")
         }
         
          // Log the extracted token for debugging
-        console.log('Extracted Token:', token);
         //verify the token
         const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
         if (!decodedToken) {
