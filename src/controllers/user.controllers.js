@@ -296,8 +296,8 @@ const updateAvatarFile = asyncHandler(async(req,res) => {
 
     const avatar = await uploadOnCLoudinary(avatarLocalPath);
 
-    if (!avatar.url) {
-        throw new ApiError(401, "Error while uploading the files in cloudinary")
+    if (!avatar || !avatar.url) { // Check if avatar or its url property is null
+        throw new ApiError(401, "Error while uploading the files in cloudinary");
     }
 
     // const user = await User.findByIdAndUpdate(
@@ -323,7 +323,6 @@ const updateAvatarFile = asyncHandler(async(req,res) => {
     if (oldAvatarPublicId) {
         await deleteFileFromCloudinary(oldAvatarPublicId);
     }
-
 
     return res
             .status(200)
