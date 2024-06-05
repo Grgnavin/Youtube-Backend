@@ -116,12 +116,27 @@ const deleteTweet = asyncHandler(async (req, res) => {
     }
 
     try {
+        const findUser = await User.findById(req.user.id);
+    
+        // if (!findUser.tweets.includes(tweetId)) {
+        //     throw new ApiError(401, `This tweet is not found in the ${findUser.username}'s model`)
+        // }
+        // findUser.tweets.pull(tweetId);
+        
+        const deletedTweetFromUSer = await User.updateOne(
+            { _id: tweetId },
+            { $pull: { tweets: { _id: tweetId } } }
+        )
+        
+        if (!deletedTweetFromUSer) {
+            throw new ApiError(401, `This tweet is not found in the ${findUser.username}'s model`)
+        }
+
         const deletedTweet = await Tweet.findByIdAndDelete(tweetId);
         
         if (!deletedTweet) {
             throw new ApiError(401, "Error while deleting the tweet")
         }
-
         return res  
                 .status(201)
                 .json(
