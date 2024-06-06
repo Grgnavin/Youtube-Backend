@@ -21,7 +21,7 @@ const createTweet = asyncHandler(async (req, res) => {
     try {
         const tweet = await Tweet.create({
                 content : content,
-                user: userId
+                owner: userId
             })
             
         const user = await User.findById(userId)
@@ -57,26 +57,27 @@ const getUserTweets = asyncHandler(async (req, res) => {
         if (!user) {
             throw new ApiError(403, "User not found")
         }
+    // Convert the tweet IDs to ObjectId if they are not already
+    const tweetIds = user.tweets.map(id => new mongoose.Types.ObjectId(id));
 
-        const tweet = await Tweet.findById(user.tweets[0]);
-
+    // Fetch all tweets associated with this user
+    const tweet = await Tweet.find({ _id: { $in: tweetIds } });
         return res
                 .status(201)
                 .json(
                     new ApiResponse(tweet, 201, `Here are all the tweets of the ${user.username}`)
                 )
 
-
-
     } catch (error) {
-        
+        console.log("ërror: ", error);
+        throw new ApiError(401, "Unauthorized request or tweet doesn't exists")
     }
-
 })
 
 const updateTweet = asyncHandler(async (req, res) => {
     //TODO: update tweet
     const { newContent, userId } = req.body;
+    const { tweetId } = req.params;
 
     if (!newContent || newContent.trim().length === 0) {
         throw new ApiError(400, "User ID is required");
@@ -86,9 +87,20 @@ const updateTweet = asyncHandler(async (req, res) => {
         throw new ApiError(400, "User ID is required");
     }
 
+    if (!tweetId) {
+        throw new ApiError(400, "Tweet ID is required");
+    }
+
     try {
-        const user = await User.findById(userId)
-        const tweet = await Tweet.findById(user.tweets[0]);
+        const user = await User.findById(userId);
+        if (!user) {
+            throw new ApiError(400, "User not found");
+        }
+        
+        if (!user.tweets.includes(tweetId)) {
+            throw new ApiError(400, "Tweet not found");
+        }
+        const tweet = await Tweet.findById(tweetId);
 
         user.tweet = newContent
         await user.save({ validateBeforeSave: false })
@@ -99,7 +111,7 @@ const updateTweet = asyncHandler(async (req, res) => {
         return res
                 .status(201)
                 .json(
-                    new ApiResponse(user.tweets, 201, "Tweet updated successfully")
+                    new ApiResponse(tweet.content , 201, "Tweet updated successfully")
                 )
     } catch (error) {
         throw new ApiError(402, "Error while updating the tweet")
@@ -116,21 +128,23 @@ const deleteTweet = asyncHandler(async (req, res) => {
     }
 
     try {
-        const findUser = await User.findById(req.user.id);
-    
-        // if (!findUser.tweets.includes(tweetId)) {
-        //     throw new ApiError(401, `This tweet is not found in the ${findUser.username}'s model`)
-        // }
-        // findUser.tweets.pull(tweetId);
-        
-        const deletedTweetFromUSer = await User.updateOne(
-            { _id: tweetId },
-            { $pull: { tweets: { _id: tweetId } } }
-        )
-        
-        if (!deletedTweetFromUSer) {
+        // const findUser = await User.findById(req.user.id);
+        const tweet = await Tweet.findById(tweetId);
+
+        if (!tweet) {
+            throw new ApiError(404, "Tweet not found");
+        }
+
+        const user = await User.findById(req.user._id);
+
+        if (!user.tweets?.includes(tweetId)) {
             throw new ApiError(401, `This tweet is not found in the ${findUser.username}'s model`)
         }
+        // Remove the tweet from the user's tweet array
+        await User.updateOne(
+            { _id: user._id },
+            { $pull: { tweets: new mongoose.Types.ObjectId(tweetId) } }
+        );
 
         const deletedTweet = await Tweet.findByIdAndDelete(tweetId);
         
@@ -143,6 +157,7 @@ const deleteTweet = asyncHandler(async (req, res) => {
                     new ApiResponse({}, 201, "Tweet deleted successfully")
                 )
     } catch (error) {
+        console.log(error);
         throw new ApiError(402, "Error while deleting the tweet")
     }
 })
