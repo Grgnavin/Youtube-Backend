@@ -9,9 +9,7 @@ const createTweet = asyncHandler(async (req, res) => {
     //TODO: create tweet
     const { content, userId } = req.body;
 
-    if (!content || content.trim().length === 0) {
-        throw new ApiError(402, "Content field is required or content can't be empty")
-    }
+    if (!content || content.trim().length === 0) throw new ApiError(402, "Content field is required or content can't be empty")
 
     if (!userId) {
         throw new ApiError(400, "User ID is required");
@@ -47,9 +45,9 @@ const getUserTweets = asyncHandler(async (req, res) => {
     // TODO: get user tweets
     const { userId } = req.params;
 
-    if (!userId) {
-        throw new ApiError(402, "UserId is required")
-    }
+    if (!userId) throw new ApiError(402, "UserId is required");
+
+    if(!isValidObjectId(userId)) throw new ApiError(404, "UserId not valid");
 
     try {
         const user = await User.findById(userId);
@@ -79,9 +77,7 @@ const updateTweet = asyncHandler(async (req, res) => {
     const { newContent, userId } = req.body;
     const { tweetId } = req.params;
 
-    if (!newContent || newContent.trim().length === 0) {
-        throw new ApiError(400, "User ID is required");
-    }
+    if (!newContent || newContent.trim().length === 0) throw new ApiError(400, "User ID is required");
 
     if (!userId) {
         throw new ApiError(400, "User ID is required");

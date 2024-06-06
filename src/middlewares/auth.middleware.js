@@ -8,6 +8,7 @@ export const verifyJWT = asyncHandler(async(req, _ , next) => {
         // console.log('Cookies: ', req.cookies); // Debugging
         // console.log('Headers: ', req.headers); // Debugging
         const token = req.cookies?.accessToken || req.headers['Authorization']?.replace("Bearer ", "");
+        console.log("Extracted token: ",token);
         if (!token) {
             throw new ApiError(401, "Unauthorized Request")
         }
@@ -25,7 +26,14 @@ export const verifyJWT = asyncHandler(async(req, _ , next) => {
         next()
 
     } catch (error) {
-        throw new ApiError(401, error?.message || "Invalid access token")
+        if (error.name === 'TokenExpiredError') {
+            throw new ApiError(401, "Token has expired");
+        } else if (error.name === 'JsonWebTokenError') {
+            throw new ApiError(401, "Invalid token");
+        } else {
+            throw new ApiError(401, error.message || "Invalid access token");
+        }
     }
-});
+    }
+);
 
