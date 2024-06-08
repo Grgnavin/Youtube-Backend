@@ -6,14 +6,12 @@ import jwt from  "jsonwebtoken";
 export const verifyJWT = asyncHandler(async(req, _ , next) => {
     try {
         // console.log('Cookies: ', req.cookies); // Debugging
-        // console.log('Headers: ', req.headers); // Debugging
         const token = req.cookies?.accessToken || req.headers['Authorization']?.replace("Bearer ", "");
-        console.log("Extracted token: ",token);
         if (!token) {
             throw new ApiError(401, "Unauthorized Request")
         }
+        console.log("Extracted Token: ", token);
         const decodeToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
-        // console.log("Decoded Token: ",decodeToken);
         const user = await User.findById(decodeToken?._id).select(
             "-password -refreshToken"
         );

@@ -7,26 +7,18 @@ import {asyncHandler} from "../utils/asyncHandler.js"
 
 const createTweet = asyncHandler(async (req, res) => {
     //TODO: create tweet
-    const { content, userId } = req.body;
+    const { content } = req.body;
 
-    if (!content || content.trim().length === 0) throw new ApiError(402, "Content field is required or content can't be empty")
+    if (!content || content.trim().length === 0) throw new ApiError(402, "Content can't be empty")
 
-    if (!userId) {
-        throw new ApiError(400, "User ID is required");
-    }
-
+    const user = await User.findById(req.user?._id);
+    if (!user) throw new ApiError(404, "User not found");
 
     try {
         const tweet = await Tweet.create({
                 content : content,
-                owner: userId
+                owner : req.user?._id
             })
-            
-        const user = await User.findById(userId)
-
-            if (!user) {
-                throw new ApiError(404, "User not found")
-            }
 
             user.tweets.push(tweet._id)
             await user.save({ validateBeforeSave: false })
@@ -67,52 +59,45 @@ const getUserTweets = asyncHandler(async (req, res) => {
                 )
 
     } catch (error) {
-        console.log("ërror: ", error);
+        console.log("error: ", error);
         throw new ApiError(401, "Unauthorized request or tweet doesn't exists")
     }
 })
 
 const updateTweet = asyncHandler(async (req, res) => {
     //TODO: update tweet
-    const { newContent, userId } = req.body;
-    const { tweetId } = req.params;
-
-    if (!newContent || newContent.trim().length === 0) throw new ApiError(400, "User ID is required");
-
-    if (!userId) {
-        throw new ApiError(400, "User ID is required");
-    }
-
-    if (!tweetId) {
-        throw new ApiError(400, "Tweet ID is required");
-    }
-
-    try {
-        const user = await User.findById(userId);
-        if (!user) {
-            throw new ApiError(400, "User not found");
+     //TODO: update tweet
+        const { newContent } = req.body;
+        const { tweetId } = req.params;
+    
+        if (!newContent || newContent.trim().length === 0) throw new ApiError(400, "User ID is required");
+    
+        if (!isValidObjectId(tweetId)) {
+            throw new ApiError(400, "Invalid tweet Id");
         }
         
-        if (!user.tweets.includes(tweetId)) {
-            throw new ApiError(400, "Tweet not found");
+        try {
+            const user = await User.findById(req.user?._id);
+            if (!user) {
+                throw new ApiError(400, "User not found");
+            }
+            
+            if (!user.tweets.includes(tweetId)) {
+                throw new ApiError(400, "Tweet not found");
+            }
+            const tweet = await Tweet.findById(tweetId);
+            
+            tweet.content = newContent
+            await tweet.save({ validateBeforeSave: false })
+            
+            return res
+                    .status(201)
+                    .json(
+                        new ApiResponse(tweet.content , 201, "Tweet updated successfully")
+                    )
+        } catch (error) {
+            throw new ApiError(402, "Error while updating the tweet")
         }
-        const tweet = await Tweet.findById(tweetId);
-
-        user.tweet = newContent
-        await user.save({ validateBeforeSave: false })
-
-        tweet.content = newContent
-        await tweet.save({ validateBeforeSave: false })
-
-        return res
-                .status(201)
-                .json(
-                    new ApiResponse(tweet.content , 201, "Tweet updated successfully")
-                )
-    } catch (error) {
-        throw new ApiError(402, "Error while updating the tweet")
-    }
-
 })
 
 const deleteTweet = asyncHandler(async (req, res) => {
@@ -134,7 +119,7 @@ const deleteTweet = asyncHandler(async (req, res) => {
         const user = await User.findById(req.user._id);
 
         if (!user.tweets?.includes(tweetId)) {
-            throw new ApiError(401, `This tweet is not found in the ${findUser.username}'s model`)
+            throw new ApiError(401, `This tweet is not found in the ${user.username}'s model`)
         }
         // Remove the tweet from the user's tweet array
         await User.updateOne(

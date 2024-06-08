@@ -3,14 +3,10 @@ import mongoose, { Schema } from "mongoose";
 const tweetSchema = new Schema({
     content: {
         type: String,
-        required: true,
-    likedBy: {
-        type: Schema.Types.ObjectId,
-        ref: "User",
-    },
-    likeCount: {
-        type: Number,
-        default: 0
+        required: true},
+    owner: {
+        type: String,
+        required:true
     }
 }, { timestamps: true });
 
