@@ -5,30 +5,34 @@ import {ApiError} from "../utils/ApiError.js"
 import {ApiResponse} from "../utils/ApiResponse.js"
 import {asyncHandler} from "../utils/asyncHandler.js"
 
-
+//returns the list of subscriber to channel
 const toggleSubscription = asyncHandler(async (req, res) => {
-    const { channelId, subscriberId } = req.params
+    const { channelId } = req.params
     // TODO: toggle subscription
-    try {
-        const existingSubscription = await Subscription.findOne({
-            subscriber: subscriberId,
-            channel: channelId
-        })
-        //if the subscription exists 
-        if(existingSubscription){
-            await Subscription.findByIdAndDelete(existingSubscription._id);
-            return res.json({
-                success: true, 
-                message: "Unsubscribed sucessfully"
-            })
-        }
-        //if subscription doesn't exists do subscribe
-        await Subscription.create({ subscriber: subscriberId, channel: channelId })
-        return res.json(
-            new ApiResponse({}, 201, "Subscribed Successfully")
-        )
+    if (!isValidObjectId(channelId)) throw new ApiError(401, "Invalid channel ID")
+        if (!req.user?._id) throw new ApiError(401, "Unauthoized User")
+            const subscriberId = req.user?._id 
+        
+        const isSubscribed = await Subscription.findOne({ channel: channelId, subscriber: subscriberId })
+        
+        try {
+        let response;
+
+        response = isSubscribed 
+                ? await Subscription.deleteOne({channel: channelId, subscriber: subscriberId })
+                : await Subscription.create({ channel: channelId, subscriber: subscriberId })
     } catch (error) {
-        throw new ApiError(402, "Error toggling the subscription")
+        throw new ApiError(402, error?.message || "Internal server error in toggleSubscription")
+    }finally {
+        return res
+                .status(201)
+                .json(
+                    new ApiResponse(
+                        response, 
+                        201, 
+                        isSubscribed? "Unsubscribed sucessfully" : "Subscribed Successfully" 
+                    )
+                )
     }
 })
 
@@ -36,26 +40,66 @@ const toggleSubscription = asyncHandler(async (req, res) => {
 const getUserChannelSubscribers = asyncHandler(async (req, res) => {
     const {channelId} = req.params
 
-    if (!channelId) {
-        throw new ApiError(402, "Channel id is required")
-    }
+    if (!isValidObjectId(channelId)) throw new ApiError(402, "Invalid Channel Id")
+
+    const user = await User.findById(req.user?._id);
+    if (!user) throw new ApiError(402, "User not found")
+
     try {
+        const subscribers = await Subscription.aggregate([
+            {
+                $match: {
+                    channel: mongoose.Types.ObjectId(channelId)
+                }
+            },
+            {
+                $lookup: {
+                    from: "users",
+                    localField: "subscriber",
+                    foreignField: "_id",
+                    as: "subscriber",
+                    pipeline: [
+                        {
+                            $project: {
+                                username: 1,
+                                fullname: 1,
+                                avatar: avatar.url
+                            }
+                        }
+                    ]
+                }
+            },
+            {
+                $addFields: {
+                    subscribers: {
+                        $first: "$subscriber",
+                    }
+                }
+            }
+        ])
+
+        const suscriberList = subscribers.map(item => item.subscriber)
+        return res  
+                .status(201)
+                .json(
+                    new ApiResponse(suscriberList, 201, `Here is the list of the ${channelId}`)
+                )
         //first find all the coresponding suscriptions that the channel get
-        const subscriptions = await Subscription.find({ channel: channelId });
-        if (subscriptions.length === 0) {
-            return res.json(
-                new ApiResponse([], 200, "No subscribers for this channel")
-            );
-        }
-        //extract the user id from the document
-        const subscriberIDs = subscriptions.map(subscription => subscription.subscriber);
-        //find user corresponding to subscriber IDs
-        const subscribers = await User.find({ _id: { $in: subscriberIDs } });
-        return res.json(
-            new ApiResponse(subscribers, 201, `${subscribers.length} has suscribed to this channel`)
-        )
+        // const subscriptions = await Subscription.find({ channel: channelId });
+        // if (subscriptions.length === 0) {
+        //     return res.json(
+        //         new ApiResponse([], 200, "No subscribers for this channel")
+        //     );
+        // }
+        // //extract the user id from the document
+        // const subscriberIDs = subscriptions.map(subscription => subscription.subscriber);
+        // //find user corresponding to subscriber IDs
+        // const subscribers = await User.find({ _id: { $in: subscriberIDs } });
+        // return res.json(
+        //     new ApiResponse(subscribers, 201, `${subscribers.length} has suscribed to this channel`)
+        // )
     } catch (error) {
-        throw new ApiError(403, "Error while getting the subscriber of channel")
+        throw new ApiError(500, error.message || "Error while getting the subscriber of channel")
     }
 })
 

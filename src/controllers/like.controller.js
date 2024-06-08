@@ -6,6 +6,8 @@ import {ApiResponse} from "../utils/ApiResponse.js"
 import {asyncHandler} from "../utils/asyncHandler.js"
 import { User } from "../models/user.models.js"
 
+
+
 const toggleVideoLike = asyncHandler(async (req, res) => {
     const {videoId} = req.params
     //TODO: toggle like on video
@@ -20,9 +22,8 @@ const toggleCommentLike = asyncHandler(async (req, res) => {
 const toggleTweetLike = asyncHandler(async (req, res) => {
     const {tweetId} = req.params
     //TODO: toggle like on tweet
-    if (!tweetId) {
-        throw new ApiError(401, "Tweet id is required")
-    }
+    if (!tweetId) throw new ApiError(401, "Tweet id is required")
+
     try {
         const userId = req.user._id;
         const user = await User.findById(userId);
