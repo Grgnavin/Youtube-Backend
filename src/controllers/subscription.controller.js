@@ -96,7 +96,7 @@ const getSubscribedChannels = asyncHandler(async (req, res) => {
         try {
             // 1. Retrieve User's Subscriptions
             const subscriptions = await Subscription.find({ subscriber: subscriberId });
-    
+            
             // 2. Extract Channel IDs
             const channelIds = subscriptions.map(subscription => subscription.channel);
     

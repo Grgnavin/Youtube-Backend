@@ -4,7 +4,7 @@ import {User} from "../models/user.models.js"
 import {ApiError} from "../utils/ApiError.js"
 import {ApiResponse} from "../utils/ApiResponse.js"
 import {asyncHandler} from "../utils/asyncHandler.js"
-import { uploadOnCLoudinary } from "../utils/cloudinary.js"
+import { deleteFileFromCloudinary, uploadOnCLoudinary } from "../utils/cloudinary.js"
 
 const getAllVideos = asyncHandler(async (req, res) => {
     const { page = 1, limit = 10, query, sortBy, sortType, userId } = req.query
@@ -15,42 +15,54 @@ const getAllVideos = asyncHandler(async (req, res) => {
 const publishAVideo = asyncHandler(async (req, res) => {
     const { title, description} = req.body
     // TODO: get video, upload to cloudinary, create video
-    if (!title || !description.length >= 1) {
-        throw new ApiError(402, "Title and description is required")
-    }
-    const videoFile = req.files?.video[0];
-    const thumbanilFile = req.files?.thumbnail[0];
-
-    if (!videoFile || !thumbanilFile) {
-        throw new ApiError(402, "Videofile and thumbnail is required")
-    }
-    
-    try {
-        const uploadVideoResponse = await uploadOnCLoudinary(videoFile);
-        const uploadThumbailResponse = await uploadOnCLoudinary(thumbanilFile);
-
-        if (!uploadVideoResponse|| !uploadThumbailResponse) {
-            throw new ApiError(402, "Error while uploading the video") 
-        }
-
-        const uploadedVideo = await Video.create({
-            videoFile: uploadVideoResponse.url,
-            thumbnail: uploadThumbailResponse.url,
+        if(!(title || description) || !(title?.trim() && description.trim())) throw new ApiError(401, "Please provide title and description")
+        
+        if (!req.files?.video?.[0].path && !req.files?.thumbnail?.[0].path) throw new ApiError(402, "Videofile and thumbnail is required")
+        
+        let videoFile ;
+        let thumbnailFile;
+        try {
+        //upload the file on the cloudinary concurrently
+        videoFile = await uploadOnCLoudinary(req.files?.video?.[0].path);
+        thumbnailFile = await uploadOnCLoudinary(req.files?.thumbnail?.[0].path);
+        // console.log("Thumbnail file: ", thumbnailFile);
+        await Video.create({
+            videoFile: { publicId: videoFile.public_id, url: videoFile?.url },
+            thumbnail: { publicId: thumbnailFile.public_id, url: thumbnailFile?.url },
             title,
             description,
-            owner: req.user.username,
+            owner: req.user?._id,
             isPublished: true,
             duration: videoDuration
         })
 
         res.status(201).json(
-            new ApiResponse(uploadedVideo, 201, "Video uploaded successfully")
+            new ApiResponse({
+                videofile: videoFile.url,
+                thumbanilFile: thumbnailFile.url,
+            }, 201, "Video uploaded successfully")
         )
 
     } catch (error) {
-        throw new ApiError(403, "Error while uploading the video")
+        try {
+            //delete the uploaded file if an error occurs
+            if(videoFile?.url) await deleteFileFromCloudinary(videoFile?.url, videoFile?.public_id);
+            if (thumbnailFile?.url) await deleteFileFromCloudinary(thumbnailFile?.url, thumbnailFile?.public_id);
+            console.log("Success");
+            return res.json(
+                new ApiResponse(
+                    {},
+                    201,
+                    "Sucessfully uploaded"
+                )
+            )
+        } catch (error) {
+                console.error("Error while deleting video: ", error);
+                throw new ApiError(500, error?.message || 'Server Error while deleting video from cloudinary');
+        }
+            console.error("Error while publishing video : ", error);
+            throw new ApiError(500, error?.message || 'Server Error while uploading video');
     }
-
 })
 
 const getVideoById = asyncHandler(async (req, res) => {
