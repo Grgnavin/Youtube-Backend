@@ -6,9 +6,9 @@ const commentSchema = new Schema({
         type: String,
         required: true,
     },
-    video: {
+    tweet: {
         type: Schema.Types.ObjectId,
-        ref: "Video"
+        ref: "Tweet"
     },
     owner: {
         type: Schema.Types.ObjectId,
