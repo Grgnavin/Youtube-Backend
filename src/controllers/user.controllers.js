@@ -118,11 +118,14 @@ const loginUser = asyncHandler(async(req,res) => {
     if (!isPasswordValid) throw new ApiError(401, "Invalid user passwords")
 
     // Generate access and refresh tokens directly here
-    const accessToken = await user.generateAccessToken();
-    const refreshToken = await user.generateRefreshToken();
+    // const accessToken = await user.generateAccessToken();
+    // const refreshToken = await user.generateRefreshToken();
+    const { accessToken, refreshToken } = await generateAccessAndRefreshToken(user._id);
 
-    user.refreshToken = refreshToken;
-    await user.save({ validateBeforeSave: false });
+
+    // user.refreshToken = refreshToken;
+    // user.accessToken = accessToken;
+    // await user.save({ validateBeforeSave: false });
 
     const loggedInUser =await User.findById(user._id).select(" -password -refreshToken ");
 
@@ -140,7 +143,7 @@ const loginUser = asyncHandler(async(req,res) => {
                         user: loggedInUser, accessToken, refreshToken
                     },
                     200,
-                    "User loggedin Successfully"
+                    "User loggedin Successfully && new Token generated"
                 )
             )
 })  
