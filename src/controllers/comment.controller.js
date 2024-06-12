@@ -7,21 +7,33 @@ import { Tweet } from "../models/tweet.models.js"
 import { User } from "../models/user.models.js"
 
 const getTweetComments = asyncHandler(async (req, res) => {
-    //TODO: get all comments for a video
-    const {tweetId} = req.params
-    const {page = 1, limit = 10} = req.query
-    if(!isValidObjectId(tweetId)) throw new ApiError(401, "Invalid tweet id");
+    const { tweetId } = req.params;
+    const { page = 1, limit = 10 } = req.query;
+
+    if (!isValidObjectId(tweetId)) {
+        return res.status(401).json(new ApiError(401, "Invalid tweet id"));
+    }
 
     const tweet = await Tweet.findById(tweetId);
-    if(!tweet) throw new ApiError(401, "Tweet not found");
+    if (!tweet) {
+        return res.status(401).json(new ApiError(401, "Tweet not found"));
+    }
 
-    let commentAggregate;
     try {
-        commentAggregate = await Comment.aggregate([
-            { //stage 1 getting all the comments of a tweet using tweet id
-                $match:  { tweetId: new mongoose.Types.ObjectId(tweetId) }
+        const options = {
+            page: parseInt(page),
+            limit: parseInt(limit),
+            customLabels: {
+                docs: "comments",
+                totalDocs: "totalComments"
+            }
+        };
+
+        const aggregate =await Comment.aggregate([
+            {
+                $match: { tweet: new mongoose.Types.ObjectId(tweetId) }
             },
-            {//stage 2 getting user info from the users collection
+            {
                 $lookup: {
                     from: "users",
                     localField: "owner",
@@ -40,67 +52,38 @@ const getTweetComments = asyncHandler(async (req, res) => {
             },
             {
                 $addFields: {
-                    owner: {
-                        $arrayElemAt: ["$owner", 0] 
-                    }
+                    owner: { $arrayElemAt: ["$owner", 0] }
                 }
-            },{
-            $sort: {
-                "createdAt": -1
+            },
+            {
+                $sort: { "createdAt": -1 }
             }
-        },
-        { // Skipping the documents for pagination
-            $skip: (page - 1) * limit
-        },
-        { // Limiting the documents for pagination
-            $limit: parseInt(limit)
-        }
-        ])
-    } catch (error) {
-        console.error("Error in aggregation:", error);
-        throw new ApiError(500, error.message || "Internal server error in comment aggregation");
-    }
-    const options = {
-        page,
-        limit,
-        customLabels: {
-            docs: "comments",
-            totalDocs: "totalComments",
-        },
-        limit: parseInt(limit),
-    }
+        ]);
 
-    Comment.aggregatePaginate(
-        commentAggregate,
-        options
-    ).then(res => {
-        if (res.comments.length === 0) {
-            return res.json(
+        const result = await Comment.aggregatePaginate(aggregate, options);
+
+        console.log("Result: ", result);
+
+        if (result.comments.length === 0) {
+            return res.status(200).json(
                 new ApiResponse(
-                    [],
-                    201,
+                    [], 
+                    200, 
                     "No comments found"
-                )
-            )
+                ));
         }
-        return res.status(201).json(
+
+        return res.status(200).json(
             new ApiResponse(
-                res,
-                201,
-                "Comments retrieve successfully"
-            )
-        )
-    }).catch((err) => {
-        console.error("Error in aggregation: ", err);
-        return res.status(201).json(
-            new ApiError(
-                [],
-                201,
-                "Error retrieving comments"
-            )
-        )
-    })
-})
+                    result, 
+                    200, 
+                    "Comments retrieved successfully"
+                ));
+    } catch (err) {
+        console.error("Error in aggregation paginate: ", err);
+        return res.status(500).json(new ApiError(500, "Error retrieving comments"));
+    }
+});
 
 const addComment = asyncHandler(async (req, res) => {
     // TODO: add a comment to a tweet
