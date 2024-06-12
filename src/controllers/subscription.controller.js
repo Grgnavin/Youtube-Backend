@@ -30,23 +30,26 @@ const toggleSubscription = asyncHandler(async (req, res) => {
                     new ApiResponse(
                         response, 
                         201, 
-                        isSubscribed? "Unsubscribed sucessfully" : "Subscribed Successfully" 
+                        isSubscribed ? "Unsubscribed sucessfully" : "Subscribed Successfully" 
                     )
                 )
     }
 )
 
 // controller to return subscriber list of a channel
-const getUserChannelSubscribers = asyncHandler(async (req, res) => {
+const getChannelSubscribers = asyncHandler(async (req, res) => {
     const {channelId} = req.params
     if(!isValidObjectId(channelId)) throw new ApiError(401, "Invalid channel id");
     
     const user = await User.findById(req.user?._id)
-    if(!user) throw new ApiError(401, "User not found ");
+    if(!user) throw new ApiError(401, "User not found");
         try{
         const subscribers = await Subscription.aggregate([
             {
-                $match: { channel: mongoose.Types.ObjectId(channelId) }
+                $match: { channel: new mongoose.Types.ObjectId(channelId) }
+            },
+            {
+                $unwind: "$subscriber"
             },
             {
                 $lookup: {
@@ -57,28 +60,27 @@ const getUserChannelSubscribers = asyncHandler(async (req, res) => {
                     pipeline: [{
                         $project: {
                             username: 1,
-                            email: 1,
                         }
                     }]
                 }
             },
             {
                 $addFields: {
-                    subscriber: { $arrayElemAt: [ "subscriber", 0 ] }
+                    subscriber: { $arrayElemAt: [ "$subscriber", 0 ] }
                 }
             }
         ])
         if(!subscribers) throw new ApiError(404, "Error in aggregation");
 
         const subscriberList = subscribers.map(item => item.subscriber);
-
+        const channel = await User.findById(channelId);
         return res
                 .status(201)
                 .json(
                     new ApiResponse(
                         subscriberList,
                         201,
-                        `Here are the list of subscriber of ${channelId} channel`
+                        `Here are the list of subscriber of ${channel.username} channel`
                     )
                 )
     } catch (error) {
@@ -101,10 +103,10 @@ const getSubscribedChannels = asyncHandler(async (req, res) => {
             const channelIds = subscriptions.map(subscription => subscription.channel);
     
             // 3. Query Users (who are the channels)
-            const channels = await User.find({ _id: { $in: channelIds } });
+            const channels = await User.find({ _id: { $in: channelIds } }).select("username avatar coverImage");
     
             // 4. Return Channel List
-            res.json(new ApiResponse(channels, 200, `User is subscribed to ${channels.length} channels`));
+            res.json(new ApiResponse(channels, 200, `User has subscribed to ${channels.length} channels`));
         } catch (error) {
             throw new ApiError(500, "Error while getting the subscribed channels");
         }
@@ -112,6 +114,6 @@ const getSubscribedChannels = asyncHandler(async (req, res) => {
 
 export {
     toggleSubscription,
-    getUserChannelSubscribers,
+    getChannelSubscribers,
     getSubscribedChannels
 }
