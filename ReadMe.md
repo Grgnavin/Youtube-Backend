@@ -24,7 +24,7 @@ This project is a comprehensive backend implementation for both YouTube and Twit
 3. Copy the contents of `env.sample` into the `.env` file.
 4. Fill in the required environment variables, including Cloudinary API name and secret key.
 5. Install the project dependencies using `npm install`.
-6. Run the application using `npm start`.
+6. Run the application using `npm run dev`.
 
 ## Usage Instructions
 This project serves as a practical example for learning Node.js development practices and understanding industry-driven code structures. It can be used to explore backend development concepts, especially those related to social media applications.
