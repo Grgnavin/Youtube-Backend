@@ -166,8 +166,71 @@ const getVideoById = asyncHandler(async (req, res) => {
 
 const updateVideo = asyncHandler(async (req, res) => {
     const { videoId } = req.params
-    //TODO: update video details like title, description, thumbnail
+    // update video details like title, description, thumbnail
+    const{ title, description } = req.body;
+    const thumbnailFilePath = req.files?.path;
+
+    if(!isValidObjectId(videoId)) throw new ApiError("Invalid video Id");
+     // Check if all required fields are provided
+    if(
+        !thumbnailFilePath  ||
+        (!title || title.trim() === '') || 
+        (!description || description.trim() === ''))
+        throw new ApiError(401, "Update fields are required");
+        
+        // Retrieve the existing video details
+        const oldVideo = await Video.findById(
+            videoId,
+            { thumbnail:1, owner: 1 }
+        )
+        if(!oldVideo) throw new ApiError(402, "Video not found");
+
+     // Check if the logged-in user is the owner of the video
+    if(!oldVideo?.owner.toString() !== req.user?._id.toString()) throw new ApiError(403, "Unauthorized request");
     
+    //upload the file to cloudinary
+    const uploadThumbnail = await uploadOnCLoudinary(thumbnailFilePath );
+    if(!uploadThumbnail) throw new ApiError(500, "Error while uploading the thumbnail");
+    //update the thumbnail,title,description of the video
+    const updatedVideo = await Video.findByIdAndUpdate(
+        videoId,
+        {
+            $set: {
+                title,
+                description,
+                thumbnail: {
+                    url: uploadThumbnail?.url,
+                    publicId: uploadThumbnail?.public_id
+                }
+            }
+        },{
+            new: true
+        }
+    )
+    if(!updatedVideo){
+        // Clean up the newly uploaded thumbnail if the update fails
+        await deleteFileFromCloudinary(uploadThumbnail?.url, uploadThumbnail?.public_id);
+        console.error("Video not updated successfully");
+        throw new ApiError(402, "Uploaded video not uploaded in database");
+    }
+
+    // Delete the old thumbnail from Cloudinary
+    if (oldVideo.thumbnail.url) {
+        try {
+            await deleteFileFromCloudinary(oldVideo.thumbnail?.url, oldVideo.thumbnail?.publicId);
+        } catch (error) {
+            console.error("Error while deleting the old video url", error);
+        throw new ApiError(500, "Error while deleting the old video url");
+        }
+    }
+    return res.status(200).json(
+        new ApiResponse(
+            updatedVideo,
+            201,
+            `${req.user.username}, the video has been updated successfully`
+        )
+    )
+
 })
 
 const deleteVideo = asyncHandler(async (req, res) => {
