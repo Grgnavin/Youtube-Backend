@@ -50,7 +50,6 @@ For inquiries or contributions, please visit my Twitter profile: [Twitter Profil
 
 ## Routes Declaration
 The project utilizes the following routes for different functionalities:
-- Health check endpoint: `/api/v1/healthcheck`
 - User-related operations: `/api/v1/users`
 - Tweet-related operations: `/api/v1/tweets`
 - Subscription-related operations: `/api/v1/subscriptions`
