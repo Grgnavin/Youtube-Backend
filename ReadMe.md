@@ -4,7 +4,7 @@
 This project is a comprehensive backend implementation for both YouTube and Twitter functionalities, built using Node.js, Express, Mongoose, and MongoDB. It supports user authentication, posting content, commenting, subscribing, uploading avatars, cover images, videos, managing likes, playlists, and providing a user dashboard similar to YouTube.
 
 ## Features
-- User registration and authentication.
+- User registration and authentication(just a simple authentication with cookies).
 - Posting tweets and comments.
 - Uploading and managing avatars and cover images via Cloudinary.
 - Video uploading, commenting, and management.
@@ -12,6 +12,11 @@ This project is a comprehensive backend implementation for both YouTube and Twit
 - Managing likes on tweets and videos.
 - Creating and managing playlists.
 - User dashboard for managing account settings and activities.
+
+
+## Note Before Installation
+> 📝 **IMPORTANT:** You must have a Cloudinary ID to use the API, specifically the API name and secret key. These credentials are essential for integrating Cloudinary services into your project, allowing you to upload and manage images and videos securely.
+
 
 ## Installation Instructions
 1. Clone the repository.
@@ -54,3 +59,10 @@ The project utilizes the following routes for different functionalities:
 - Like-related operations: `/api/v1/likes`
 - Playlist-related operations: `/api/v1/playlist`
 - Dashboard-related operations: `/api/v1/dashboard`
+
+## Thank You for Reviewing!
+Thank you for taking the time to review this documentation. Your interest in exploring and potentially contributing to this project is greatly appreciated. If you have any questions, feedback, or wish to contribute, please don't hesitate to reach out. Happy coding!
+
+---
+
+This concludes the documentation for the Youtube and Twitter Backend project. For further inquiries or updates, please refer to the contact information provided earlier.
