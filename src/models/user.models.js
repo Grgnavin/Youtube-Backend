@@ -46,6 +46,10 @@ const userSchema = new mongoose.Schema({
             type: Schema.Types.ObjectId, 
             ref: 'Tweet' 
     }],
+    video: [{
+            type: Schema.Types.ObjectId, 
+            ref: 'video'
+    }],
     refreshToken: {
         type: String
     },
