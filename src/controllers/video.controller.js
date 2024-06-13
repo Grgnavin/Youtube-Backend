@@ -1,6 +1,8 @@
 import mongoose, {isValidObjectId} from "mongoose"
 import {Video} from "../models/video.Models.js"
 import {User} from "../models/user.models.js"
+import {Comment} from "../models/comment.models.js"
+import {Like} from "../models/like.models.js"
 import {ApiError} from "../utils/ApiError.js"
 import {ApiResponse} from "../utils/ApiResponse.js"
 import {asyncHandler} from "../utils/asyncHandler.js"
@@ -171,13 +173,45 @@ const updateVideo = asyncHandler(async (req, res) => {
 const deleteVideo = asyncHandler(async (req, res) => {
     const { videoId } = req.params
     //TODO: delete video
-    if(!isValidObjectId(videoId)) throw new ApiError(401, "Invalid video Id")
+    if(!isValidObjectId(videoId)) throw new ApiError(401, "Invalid video Id");
 
-    const video = await Video.findByIdAndDelete(videoId).select('_id videoFile thumbnail');
+    const video = await Video.findByIdAndDelete(videoId, { videoFile: 1, thumbanil: 1 }).select('_id videoFile thumbnail');
     if(!video) throw new ApiError(403, "Video not found")
     
-    
+    const session = await mongoose.startSession();
+    session.startTransaction();
 
+    try {
+        //delete video from cloudinary first
+        const deleteVideoFile = await deleteFileFromCloudinary(video.videoFile?.publicId, video.videoFile?.url);
+        const deleteThumbnailFile = await deleteFileFromCloudinary(video.thumbnail?.publicId, video.thumbnail?.url);
+        
+        if(!deleteVideoFile || !deleteThumbnailFile) throw new ApiError(402, "Error while deleting the files from cloudinary")
+        
+        //delete video from db then 
+        await Video.findByIdAndDelete(videoId);
+
+        //Remove video from all the collections;
+        const deleteComment = await Comment.deleteMany({ video: videoId });
+        const deleteLike = await Like.deleteMany({ video: videoId });
+        const deleteFromUser = await User.updateMany({ watchHistory: videoId }, { $pull: videoId });
+        
+        if(!deleteComment || !deleteLike || !deleteFromUser) throw new ApiError(401, "Error while updating from the other collections");
+
+        await session.commitTransaction();
+        session.endSession();
+
+        return res.status(200).json(
+            new ApiResponse(
+                {},
+                201,
+                "Video deleted successfully"
+            )
+        )
+    } catch (error) {
+        console.error("Error in server: ", error)
+        throw new ApiError(500, error.message || "Internal Server error");
+    }
 })
 
 const togglePublishStatus = asyncHandler(async (req, res) => {
