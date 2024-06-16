@@ -34,7 +34,6 @@ const toggleLike = async(Model, resourceId, userId) => {
 
 const toggleVideoLike = asyncHandler(async (req, res) => {
     const {videoId} = req.params
-    //TODO: toggle like on video
     const { response, isLiked, totalLikes } = await toggleLike(Video, videoId, req.user?._id);
     return res.status(200).json(
         new ApiResponse(
@@ -47,7 +46,6 @@ const toggleVideoLike = asyncHandler(async (req, res) => {
 
 const toggleCommentLike = asyncHandler(async (req, res) => {
     const {commentId} = req.params
-    //TODO: toggle like on comment
     const { response, isLiked, totalLikes } = await toggleLike(Comment, commentId, req.user?._id);
     return res.status(200).json(
         new ApiResponse(
@@ -60,7 +58,6 @@ const toggleCommentLike = asyncHandler(async (req, res) => {
 
 const toggleTweetLike = asyncHandler(async (req, res) => {
     const {tweetId} = req.params
-    //TODO: toggle like on tweet
     const { response, isLiked, totalLikes } = await toggleLike(Tweet, tweetId, req.user?._id);
     return res.status(200).json(
         new ApiResponse(
@@ -74,7 +71,79 @@ const toggleTweetLike = asyncHandler(async (req, res) => {
 
 const getLikedVideos = asyncHandler(async (req, res) => {
     //TODO: get all liked videos
-    
+    if(!req.user?._id) throw new ApiError(403, "Unauthorized request");
+    const userId = req.user?._id;
+
+    const likedVideos = await Like.aggregate( [
+        {
+            $match: {
+                likedBy: new mongoose.Types.ObjectId(userId),
+            },
+        },
+        {
+            $lookup: {
+                from: "videos",
+                localField: "video",
+                foreignField: "_id",
+                as: "video",
+                pipeline: [
+                    {
+                        $lookup: {
+                            from: "users",
+                            localField: "owner",
+                            foreignField: "_id",
+                            as: "owner",
+                            pipeline: [
+                                {
+                                    $project: {
+                                        fullName: 1,
+                                    },
+                                },
+                            ],
+                        },
+                    },
+                    {
+                        $addFields: {
+                            owner: {
+                                $first: "$owner",
+                            },
+                        },
+                    },
+                    {
+                        $addFields: {
+                            videoFile: "$videoFile.url"
+                        },
+                    },
+                    {
+                        $addFields: {
+                            thumbnail: "$thumbnail.url"
+                        },
+                    },
+                ],
+            },
+        },
+        {
+            $unwind: "$video"
+        },
+        {
+            $replaceRoot: {
+                newRoot: "$video",
+            },
+        },
+    ])
+
+    console.log(likedVideos);
+    return res.status(200).json(
+        new ApiResponse(
+            likedVideos,
+            201,
+            likedVideos.length === 0 ? `${req.user?.username} hasn't liked any videos yet` 
+            : `${req.user?.username} has liked ${likedVideos.length} videos`
+        )
+    )
+
+
+
 })
 
 export {

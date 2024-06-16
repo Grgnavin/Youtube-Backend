@@ -86,7 +86,6 @@ const getTweetComments = asyncHandler(async (req, res) => {
 });
 
 const addComment = asyncHandler(async (req, res) => {
-    // TODO: add a comment to a tweet
     const { tweetId } = req.params;
     if (!isValidObjectId(tweetId)) throw new ApiError(400, "Invalid tweetId");
 
@@ -121,7 +120,6 @@ const addComment = asyncHandler(async (req, res) => {
 
 
 const updateComment = asyncHandler(async (req, res) => {
-    // TODO: update a comment
     const { commentId } = req.params;
     if(!isValidObjectId(commentId)) throw new ApiError(401, "Invalid comment Id");
 
@@ -158,7 +156,6 @@ const updateComment = asyncHandler(async (req, res) => {
 })
 
 const deleteComment = asyncHandler(async (req, res) => {
-    // TODO: delete a comment
     const { commentId } = req.params;
     if(!isValidObjectId(commentId)) throw new ApiError(401, "Invalid comment Id");
     
