@@ -26,7 +26,7 @@ export const verifyJWT = asyncHandler(async(req, _ , next) => {
 
     } catch (error) {
         if (error.name === 'TokenExpiredError') {
-            throw new ApiError(401, "Token has expired");
+            throw new ApiError(401, "Token has expired", error);
         } else if (error.name === 'JsonWebTokenError') {
             throw new ApiError(401, "Invalid token");
         } else {

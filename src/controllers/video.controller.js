@@ -20,8 +20,10 @@ const getAllVideos = asyncHandler(async (req, res) => {
 
 const publishAVideo = asyncHandler(async (req, res) => {
     const { title, description} = req.body
-    // TODO: get video, upload to cloudinary, create video
         if(!(title || description) || !(title?.trim() && description.trim())) throw new ApiError(401, "Please provide title and description")
+        
+        const user = await User.findById(req.user?._id);
+        if(!user) throw new ApiError(403, "Unauthorized request");
         
         if (!req.files?.video?.[0].path && !req.files?.thumbnail?.[0].path) throw new ApiError(402, "Videofile and thumbnail is required")
         
@@ -44,6 +46,8 @@ const publishAVideo = asyncHandler(async (req, res) => {
             isPublished: true,
             duration: videoDuration
         })
+        user.video.push(video._id);
+        user.save({ validateBeforeSave: true });
         res.status(201).json(
             new ApiResponse({
                 videofile: videoFile.url, //only sending the url of the video
