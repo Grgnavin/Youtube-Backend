@@ -43,6 +43,10 @@ const videoSchema = new mongoose.Schema({
         required: true,
         default: true
     },
+    comments: [{
+        type: Schema.Types.ObjectId,
+        ref: "Comment"
+    }],
     owner: {
         type: Schema.Types.ObjectId,
         ref: "User"

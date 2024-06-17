@@ -5,6 +5,7 @@ import {ApiResponse} from "../utils/ApiResponse.js"
 import {asyncHandler} from "../utils/asyncHandler.js"
 import { Tweet } from "../models/tweet.models.js"
 import { User } from "../models/user.models.js"
+import { Video } from "../models/video.Models.js"
 
 const getTweetComments = asyncHandler(async (req, res) => {
     const { tweetId } = req.params;
@@ -42,7 +43,6 @@ const getTweetComments = asyncHandler(async (req, res) => {
                     pipeline: [
                         {
                             $project: {
-                                _id: 1,
                                 username: 1,
                                 email: 1
                             }
@@ -85,6 +85,80 @@ const getTweetComments = asyncHandler(async (req, res) => {
     }
 });
 
+const getVideoComments = asyncHandler(async (req,res) => {
+    const { videoId } = req.params;
+    const { page = 1, limit= 10 } = req.query
+
+    if(!isValidObjectId(videoId)) throw new ApiError(401, "Invalid video Id")
+
+    const video = await Video.findById(videoId);
+    if(!video) throw new ApiError(401, "Invalid video Id");
+
+    try {
+        const options = {
+            page: parseInt(page),
+            limit: parseInt(limit),
+            customLabels: {
+                docs: "comments",
+                totalDocs: "totalComments"
+            }
+        }
+
+        const aggregate = await Comment.aggregate([
+            {
+                $match: { video: new mongoose.Types.ObjectId(videoId) }
+            },
+            {
+                $lookup: {
+                    from: "users",
+                    localField: "owner",
+                    foreignField: "_id",
+                    as: "owner",
+                    pipeline: [
+                        {
+                            $project: {
+                                username: 1,
+                                avatar: "$avatar.url"
+                            }
+                        }
+                    ]
+                }
+            },
+            {
+                $addFields: {
+                    owner: { $arrayElemAt: [ "$owner", 0 ] }
+                }
+            },
+            {
+                $sort: { "createdAt": -1 }
+            }
+        ])
+        const result = await Comment.aggregatePaginate(aggregate, options);
+
+        console.log("Result: ", result);
+        if (result.comments.length === 0) {
+            return res.status(200).json(
+                new ApiResponse(
+                    [], 
+                    200, 
+                    "No comments found"
+                ));
+        }
+
+        return res.status(200).json(
+            new ApiResponse(
+                result, 
+                200, 
+                `Comments of the video ${video._id}`
+            ));
+
+    } catch (error) {
+        
+    }
+
+
+})
+
 const addComment = asyncHandler(async (req, res) => {
     const { tweetId } = req.params;
     if (!isValidObjectId(tweetId)) throw new ApiError(400, "Invalid tweetId");
@@ -118,6 +192,38 @@ const addComment = asyncHandler(async (req, res) => {
     );
 });
 
+const addVideoComment = asyncHandler(async (req, res) => {
+    const { videoId } = req.params;
+    if (!isValidObjectId(videoId)) throw new ApiError(400, "Invalid video Id");
+
+    const { content } = req.body;
+    if (!content) throw new ApiError(400, "Content is required");
+
+    const video = await Video.findById(videoId);
+    const user = await User.findById(req.user?._id).select("_id username");
+
+    if (!video) throw new ApiError(404, "Tweet not found");
+    if (!user) throw new ApiError(404, "User not found");
+
+    const comment = await Comment.create({
+        content,
+        video: videoId,
+        owner: user
+    });
+
+    if (!comment) throw new ApiError(500, "Something went wrong while adding the comment");
+
+    video.comments.push(comment._id);
+    await video.save({ validateBeforeSave: false });
+
+    return res.status(201).json(
+        new ApiResponse(
+            comment,
+            201,
+            `${user.username} has commented on this video`
+        )
+    );
+});
 
 const updateComment = asyncHandler(async (req, res) => {
     const { commentId } = req.params;
@@ -176,9 +282,13 @@ const deleteComment = asyncHandler(async (req, res) => {
     }
 })
 
+
+
 export {
     getTweetComments, 
     addComment, 
     updateComment,
-    deleteComment
+    deleteComment,
+    addVideoComment,
+    getVideoComments
 }
