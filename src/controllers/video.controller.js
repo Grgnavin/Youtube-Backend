@@ -47,7 +47,7 @@ const publishAVideo = asyncHandler(async (req, res) => {
             duration: videoDuration
         })
         user.video.push(video._id);
-        user.save({ validateBeforeSave: true });
+        user.save({ validateBeforeSave: false });
         res.status(201).json(
             new ApiResponse({
                 videofile: videoFile.url, //only sending the url of the video
