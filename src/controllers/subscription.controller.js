@@ -12,7 +12,7 @@ const toggleSubscription = asyncHandler(async (req, res) => {
     if(!isValidObjectId(channelId)) throw new ApiError(401, "Invalid channel ID");
 
     if(!req.user?._id) throw new ApiError(401, "User id not found");
-    const subscriberId = req.user?._id
+    const subscriberId = req.user?._id;
 
     let isSubscribed = await Subscription.findOne({ channel: channelId, subscriber: subscriberId });
     let response;
@@ -23,7 +23,6 @@ const toggleSubscription = asyncHandler(async (req, res) => {
     } catch (error) {
         throw new ApiError(402, error?.message || "Internal server error in toggleSubscription")
     }
-
         return res
                 .status(201)
                 .json(
