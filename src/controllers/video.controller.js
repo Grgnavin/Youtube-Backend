@@ -320,11 +320,38 @@ const togglePublishStatus = asyncHandler(async (req, res) => {
 
 })
 
+const getAllVideosForFeed = asyncHandler(async(req,res) => {
+    if(!req.user._id) throw new ApiError(402, "Unauthorized Request")
+
+    const allVideos =await Video.find();
+    if(!allVideos) throw new ApiError(401, "Error while fetching the videos");
+
+    if(allVideos.length === 0 || allVideos === null) {
+        return res.status(200).json(
+            new ApiResponse(
+                null,
+                201,
+                "No videos to show"
+            )
+        )
+    }
+
+    return res.status(200).json(
+        new ApiResponse(
+            allVideos,
+            201,
+            "All videos fetched successfully"
+        )
+    )
+
+})
+
 export {
     getAllVideos,
     publishAVideo,
     getVideoById,
     updateVideo,
     deleteVideo,
-    togglePublishStatus
+    togglePublishStatus,
+    getAllVideosForFeed
 }

@@ -148,6 +148,16 @@ const getAllTweets = asyncHandler(async(req,res) => {
     const allTweets = await Tweet.find().select("-createdAt -updatedAt -__v");
     if(!allTweets) throw new ApiError(401, "Error while getting tweets");
 
+    if(allTweets.length === 0 || allTweets === null) {
+        return res.status(200).json(
+            new ApiResponse(
+                null,
+                201,
+                "No tweets to show "
+            )
+        )
+    }
+
     return res.status(200).json(
         new ApiResponse(
             allTweets,
