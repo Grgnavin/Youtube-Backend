@@ -65,6 +65,8 @@ const getPlaylistById = asyncHandler(async (req, res) => {
     const playlist = await Playlist.findById(playlistId);
     if(!playlist) throw new ApiError(401, "Playlist not found");
 
+    if(user._id.toString() !== playlist.owner.toString()) throw new ApiError(402, `Sorry this playlist cannot be accessible`);
+
     const playlistAggregate = await Playlist.aggregate([
         {
             $match: {
@@ -153,7 +155,7 @@ const getPlaylistById = asyncHandler(async (req, res) => {
 
     if(!playlistAggregate) throw new ApiError(401, "Error in aggregation");
 
-    const isEmpty = playlistAggregate.length === 0
+    const isEmpty = playlistAggregate.length === 0;
 
     return res.status(200).json(
         new ApiResponse(
@@ -162,9 +164,6 @@ const getPlaylistById = asyncHandler(async (req, res) => {
             isEmpty ? `No video found in the playlist ${req.user?.username}` : `Here is your playlist ${req.user?.username}` 
         )
     )
-
-
-
 
 })
 

@@ -7,6 +7,7 @@ import {ApiError} from "../utils/ApiError.js"
 import {ApiResponse} from "../utils/ApiResponse.js"
 import {asyncHandler} from "../utils/asyncHandler.js"
 import { deleteFileFromCloudinary, uploadOnCLoudinary } from "../utils/cloudinary.js"
+import { Playlist } from "../models/playlist.models.js"
 
 const getAllVideos = asyncHandler(async (req, res) => {
     const { page = 1, limit = 10, query= "", sortBy="createdAt", sortType=1, userId } = req.query
@@ -19,7 +20,7 @@ const getAllVideos = asyncHandler(async (req, res) => {
 })
 
 const publishAVideo = asyncHandler(async (req, res) => {
-    const { title, description} = req.body
+    const { title, description} = req.body;
         if(!(title || description) || !(title?.trim() && description.trim())) throw new ApiError(401, "Please provide title and description")
         
         const user = await User.findById(req.user?._id);
@@ -239,11 +240,14 @@ const updateVideo = asyncHandler(async (req, res) => {
 
 const deleteVideo = asyncHandler(async (req, res) => {
     const { videoId } = req.params
-    //TODO: delete video
     if(!isValidObjectId(videoId)) throw new ApiError(401, "Invalid video Id");
-
-    const video = await Video.findByIdAndDelete(videoId, { videoFile: 1, thumbanil: 1 }).select('_id videoFile thumbnail');
+    
+    //check if the loggedin user is the owner of the video
+    
+    const video = await Video.findById(videoId).select('_id videoFile thumbnail owner');
     if(!video) throw new ApiError(403, "Video not found")
+    
+    if(video?.owner?.toString() !== req.user?._id.toString()) throw new ApiError(403, "Unauthorized request");
     
     const session = await mongoose.startSession();
     session.startTransaction();
@@ -262,8 +266,9 @@ const deleteVideo = asyncHandler(async (req, res) => {
         const deleteComment = await Comment.deleteMany({ video: videoId });
         const deleteLike = await Like.deleteMany({ video: videoId });
         const deleteFromUser = await User.updateMany({ watchHistory: videoId }, { $pull: videoId });
+        const deleteFromPlaylist = await Playlist.deleteOne({ videos: videoId });
         
-        if(!deleteComment || !deleteLike || !deleteFromUser) throw new ApiError(401, "Error while updating from the other collections");
+        if(!deleteComment || !deleteLike || !deleteFromUser || deleteFromPlaylist) throw new ApiError(401, "Error while updating from the other collections");
 
         await session.commitTransaction();
         session.endSession();
@@ -276,6 +281,8 @@ const deleteVideo = asyncHandler(async (req, res) => {
             )
         )
     } catch (error) {
+        await session.abortTransaction();
+        session.endSession();
         console.error("Error in server: ", error)
         throw new ApiError(500, error.message || "Internal Server error");
     }

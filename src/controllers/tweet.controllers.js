@@ -101,7 +101,6 @@ const updateTweet = asyncHandler(async (req, res) => {
 })
 
 const deleteTweet = asyncHandler(async (req, res) => {
-    //TODO: delete tweet
     const { tweetId } = req.params;
     
     if (!tweetId) {
@@ -143,9 +142,26 @@ const deleteTweet = asyncHandler(async (req, res) => {
     }
 })
 
+const getAllTweets = asyncHandler(async(req,res) => {
+    if(!req.user._id) throw new ApiError(402, "Unauthorized request");
+
+    const allTweets = await Tweet.find().select("-createdAt -updatedAt -__v");
+    if(!allTweets) throw new ApiError(401, "Error while getting tweets");
+
+    return res.status(200).json(
+        new ApiResponse(
+            allTweets,
+            201,
+            "All tweets fetched successfully"
+        )
+    )
+
+})
+
 export {
     createTweet,
     getUserTweets,
     updateTweet,
-    deleteTweet
+    deleteTweet,
+    getAllTweets
 }
