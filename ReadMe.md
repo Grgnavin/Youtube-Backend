@@ -19,6 +19,14 @@ Project uses all standard practices like JWT, bcrypt, access tokens, refresh Tok
 ## Note Before Installation
 > 📝 **IMPORTANT:** You must have a Cloudinary ID to use the API, specifically the API name and secret key. These credentials are essential for integrating Cloudinary services into your project, allowing you to upload and manage images and videos securely.
 
+### Steps to Set Up Using Docker
+
+1. **Pull the image and run it locally**
+    Run the Docker container using the command 
+    ```bash
+    docker run -p 8000:8000 youtube-twitter-backend
+
+
 
 ## Installation Instructions
 1. Clone the repository.

@@ -1,5 +1,5 @@
 # Use an official Node.js runtime as a parent image
-FROM node:14
+FROM node:20
 
 # Set the working directory
 WORKDIR /src
@@ -12,9 +12,6 @@ RUN npm install
 
 # Copy the entire project to the working directory
 COPY . .
-
-# Copy env.sample to .env
-RUN cp env.sample .env
 
 # Expose port 8000
 EXPOSE 8000
