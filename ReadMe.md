@@ -21,12 +21,11 @@ Project uses all standard practices like JWT, bcrypt, access tokens, refresh Tok
 
 ### Steps to Set Up Using Docker
 
-1. **Pull the image and run it locally**
+1. **Pull the image and run it locally:**
+
     Run the Docker container using the command 
     ```bash
     docker run -p 8000:8000 youtube-twitter-backend
-
-
 
 ## Installation Instructions
 1. Clone the repository.
