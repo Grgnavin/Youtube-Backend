@@ -36,7 +36,7 @@ const publishAVideo = asyncHandler(async (req, res) => {
         videoFile = await uploadOnCLoudinary(req.files?.video?.[0].path);
         thumbnailFile = await uploadOnCLoudinary(req.files?.thumbnail?.[0].path);
         // console.log("Thumbnail file: ", thumbnailFile);
-        // console.log("Video file: ", videoFile);
+        console.log("Video file: ", videoFile);
         const videoDuration = videoFile?.duration || 0;
         const video = await Video.create({
             videoFile:  { publicId: videoFile?.public_id, url: videoFile?.url } ,
@@ -263,12 +263,13 @@ const deleteVideo = asyncHandler(async (req, res) => {
         await Video.findByIdAndDelete(videoId);
 
         //Remove video from all the collections;
+        const deleteVideo = await Video.findByIdAndDelete(videoId);
         const deleteComment = await Comment.deleteMany({ video: videoId });
         const deleteLike = await Like.deleteMany({ video: videoId });
         const deleteFromUser = await User.updateMany({ watchHistory: videoId }, { $pull: videoId });
         const deleteFromPlaylist = await Playlist.deleteOne({ videos: videoId });
         
-        if(!deleteComment || !deleteLike || !deleteFromUser || deleteFromPlaylist) throw new ApiError(401, "Error while updating from the other collections");
+        if( !deleteVideo ||!deleteComment || !deleteLike || !deleteFromUser || deleteFromPlaylist) throw new ApiError(401, "Error while updating from the other collections");
 
         await session.commitTransaction();
         session.endSession();
