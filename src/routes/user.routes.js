@@ -30,22 +30,17 @@ router.route('/register').post(
     ]),
     registerUser
 );
-router.route('/login').post(loginUser)
-router.route('/logout').post(verifyJWT ,logoutUser)
-router.route('/refresh-Token').post(refreshAccessToken)
-router.route('/change-password').post(verifyJWT ,changePassword)
-router.route('/current-user').post(verifyJWT ,getUser)
-router.route('/update-account').patch(verifyJWT ,updateAccountDetails)
+router.route('/login').post(loginUser);
+router.route('/logout').post(verifyJWT ,logoutUser);
+router.route('/refresh-Token').post(refreshAccessToken);
+router.route('/change-password').post(verifyJWT ,changePassword);
+router.route('/current-user').post(verifyJWT ,getUser);
+router.route('/update-account').patch(verifyJWT ,updateAccountDetails);
 
-router.route('/Avatar').post(verifyJWT , upload.single("avatar"), updateAvatarFile)
-router.route('/CoverImage').post(verifyJWT , upload.single("coverImage"), updateCoverImage)
+router.route('/Avatar').post(verifyJWT , upload.single("avatar"), updateAvatarFile);
+router.route('/CoverImage').post(verifyJWT , upload.single("coverImage"), updateCoverImage);
 
-router.route('/channel/:username').post(verifyJWT, getUserChannelProfile)
-router.route('/history').get(verifyJWT, getWatchHistory)
-
-
-
-
-
+router.route('/channel/:username').post(verifyJWT, getUserChannelProfile);
+router.route('/history').get(verifyJWT, getWatchHistory);
 
 export default router;

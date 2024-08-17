@@ -10,28 +10,52 @@ import { deleteFileFromCloudinary, uploadOnCLoudinary } from "../utils/cloudinar
 import { Playlist } from "../models/playlist.models.js"
 
 const getAllVideos = asyncHandler(async (req, res) => {
-    const { page = 1, limit = 10, query= "", sortBy="createdAt", sortType=1, userId } = req.query
-    //TODO: get all videos based on query, sort, pagination
-    const { channelId } = req.params;
-    if(!isValidObjectId(channelId)) throw new ApiError(403, "Invalid channelId");
+    // const { page = 1, limit = 10, query= "", sortBy="createdAt", sortType=1, userId } = req.query
+    try {
+        if(!req.user._id) throw new ApiError(402, "Unauthorized Request")
 
-    
-
+            const allVideos =await Video.find().select('-createdAt -updatedAt -__v');
+            if(!allVideos) throw new ApiError(401, "Error while fetching the videos");
+        
+            if(allVideos.length === 0 || allVideos === null) {
+                return res.status(200).json(
+                    new ApiResponse(
+                        null,
+                        201,
+                        "No videos to show"
+                    )
+                )
+            }
+        
+            return res.status(200).json(
+                new ApiResponse(
+                    allVideos,
+                    201,
+                    "All videos fetched successfully"
+                )
+            )
+        
+    } catch (error) {
+        console.log(error);
+        return res.json(
+            new ApiError(500, "Internal server error")
+        )
+    }
 })
 
 const publishAVideo = asyncHandler(async (req, res) => {
     const { title, description} = req.body;
-        if(!(title || description) || !(title?.trim() && description.trim())) throw new ApiError(401, "Please provide title and description")
+    if(!(title || description) || !(title?.trim() && description.trim())) throw new ApiError(401, "Please provide title and description")
         
-        const user = await User.findById(req.user?._id);
-        if(!user) throw new ApiError(403, "Unauthorized request");
-        
-        if (!req.files?.video?.[0].path && !req.files?.thumbnail?.[0].path) throw new ApiError(402, "Videofile and thumbnail is required")
-        
-        let videoFile ;
-        let thumbnailFile;
-        try {
-            console.log(req.files);
+    const user = await User.findById(req.user?._id);
+    if(!user) throw new ApiError(403, "Unauthorized request");
+    
+    if (!req.files?.video?.[0].path && !req.files?.thumbnail?.[0].path) throw new ApiError(402, "Videofile and thumbnail is required")
+    
+    let videoFile ;
+    let thumbnailFile;
+    try {
+        console.log(req.files);
         //upload the file on the cloudinary concurrently
         videoFile = await uploadOnCLoudinary(req.files?.video?.[0].path);
         thumbnailFile = await uploadOnCLoudinary(req.files?.thumbnail?.[0].path);
@@ -54,18 +78,15 @@ const publishAVideo = asyncHandler(async (req, res) => {
                 videofile: videoFile.url, //only sending the url of the video
                 thumbanilFile: thumbnailFile.url, //only sending the url of the video
             }, 201, `${req.user?.username} has uploaded video successfully`)
-        )
-
+    )
     } catch (error) {
         console.error("Error occurred during video upload process: ", error);
-
         // Log detailed validation errors if present
         if (error.errors) {
             Object.keys(error.errors).forEach(key => {
                 console.error(`Validation error: ${error.errors[key].message}`);
             });
         }
-
         try {
             //delete the uploaded file if an error occurs
             if(videoFile?.url) await deleteFileFromCloudinary(videoFile?.url, videoFile?.public_id);
@@ -89,14 +110,14 @@ const getVideoById = asyncHandler(async (req, res) => {
     const { videoId } = req.params
     //TODO: get video by id
     if(!isValidObjectId(videoId)) throw new ApiError(403, "Invalid videoId")
-    
+
     try {
         const video = await Video.findById(videoId);
         if(!video) throw new ApiError(403, "Video not found");
 
         const user = await User.findById(req.user?._id, { watchHistory: 1 });
         if(!user) throw new ApiError(403, "User not found");
-        
+
         if (!user.watchHistory.includes(videoId)) {
             await Video.findByIdAndUpdate(
                 videoId,

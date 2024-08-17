@@ -3,10 +3,8 @@ import {Video} from "../models/video.Models.js"
 import {ApiError} from "../utils/ApiError.js"
 import {ApiResponse} from "../utils/ApiResponse.js"
 import {asyncHandler} from "../utils/asyncHandler.js"
-import { Tweet } from "../models/tweet.models.js"
 
 const getChannelStats = asyncHandler(async (req, res) => {
-    // TODO: Get the channel stats like total video views, total subscribers, total videos, total likes etc.
     if(!req.user?._id) throw new ApiError(403, "Unauthorized request");
     const userID = req.user?._id;
 
@@ -59,7 +57,7 @@ const getChannelStats = asyncHandler(async (req, res) => {
          // Group to calculate stats
         {
             $group: {
-                _id: null,
+                _id: userID,
                 totalVideos: { $sum: 1 },
                 totalViews: { $sum: "$views" },
                 subscribers: { $first: "$subscriber" },

@@ -286,7 +286,8 @@ const updateAccountDetails = asyncHandler(async(req,res) => {
 
 const updateAvatarFile = asyncHandler(async(req,res) => {
     const avatarLocalPath = req.file?.path;
-
+    console.log(req.file.path);
+    
     if (!avatarLocalPath) {
         throw new ApiError(401, "Avatar file is missing")
     }
@@ -363,7 +364,7 @@ const getUserChannelProfile = asyncHandler(async(req,res) => {
     if (!username.trim()) {
         throw new ApiError(402, "username is missing")
     }
-
+    
 const channel = await User.aggregate([
         {
             $match: {
@@ -395,9 +396,11 @@ const channel = await User.aggregate([
                     $size : "$subscribedTo"
                 },
                 isSubscribed: {
-                    if: {$in: [req.user?._id, "$subscribers.subscribers"]},
-                    then: true,
-                    else : false
+                    $cond: {
+                        if: { $in: [req.user?._id, "$subscribers._id"] },
+                        then: true,
+                        else: false
+                    }
                 }
             }
         },
@@ -416,7 +419,7 @@ const channel = await User.aggregate([
         }
     ])
 
-    console.log(channel);
+    console.log("channel", channel);
     
     if (!channel?.length) {
         throw new ApiError(404, "Channel doesn't exists..")
@@ -425,57 +428,64 @@ const channel = await User.aggregate([
     return res
             .status(200)
             .json(
-                new ApiResponse(channel[0], 201, "USer channel fetched successfully")
+                new ApiResponse(channel[0], 201, "User channel fetched successfully")
             )
 })
 
 const getWatchHistory = asyncHandler(async (req, res) => {
-        const user = await User.aggregate([
-                    {
-                        $match: {
-                            _id: new mongoose.Types.ObjectId(req.user._id)
-                        }
-                    },
-                    {
-                        $lookup: {
-                            from: "videos",
-                            localField: "watchHistory",
-                            foreignField: "_id",
-                            as: "watchHistory",
-                            pipeline: [
-                                {
-                                    $lookup: {
-                                        from: "users",
-                                        localField: "owner",
-                                        foreignField: "_id",
-                                        as: "owner",
-                                        pipeline: [
-                                            {
-                                                $project: {
-                                                    fullName: 1,
-                                                    username: 1,
-                                                    avatar: 1
-                                                }
-                                            },
-                                            {
-                                                $addFields: {
-                                                    owner: {
-                                                        $first: "$owner"
+        try {
+            const user = await User.aggregate([
+                        {
+                            $match: {
+                                _id: new mongoose.Types.ObjectId(req.user._id)
+                            }
+                        },
+                        {
+                            $lookup: {
+                                from: "videos",
+                                localField: "watchHistory",
+                                foreignField: "_id",
+                                as: "watchHistory",
+                                pipeline: [
+                                    {
+                                        $lookup: {
+                                            from: "users",
+                                            localField: "owner",
+                                            foreignField: "_id",
+                                            as: "owner",
+                                            pipeline: [
+                                                {
+                                                    $project: {
+                                                        fullName: 1,
+                                                        username: 1,
+                                                        avatar: 1
+                                                    }
+                                                },
+                                                {
+                                                    $addFields: {
+                                                        owner: {
+                                                            $first: "$owner"
+                                                        }
                                                     }
                                                 }
-                                            }
-                                        ]
+                                            ]
+                                        }
                                     }
-                                }
-                            ]
+                                ]
+                            }
                         }
-                    }
-    ]);
-        return res
-                .status(200)
-                .json(
-                    new ApiResponse(user[0].watchHistory, 200, "Watched history fetched successfully")
-                );
+        ]);
+            return res
+                    .status(200)
+                    .json(
+                        new ApiResponse(user[0].watchHistory, 200, "Watched history fetched successfully")
+                    );
+        } catch (error) {
+            console.log(error);
+            return res.status(500).json(
+                new ApiResponse(null, 500, "Internal server error")
+            )
+        }
 });
 
 export { 
