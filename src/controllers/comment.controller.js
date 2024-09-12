@@ -62,7 +62,6 @@ const getTweetComments = asyncHandler(async (req, res) => {
 
         const result = await Comment.aggregatePaginate(aggregate, options);
 
-        console.log("Result: ", result);
 
         if (result.comments.length === 0) {
             return res.status(200).json(
@@ -136,7 +135,6 @@ const getVideoComments = asyncHandler(async (req,res) => {
         ])
         const result = await Comment.aggregatePaginate(aggregate, options);
 
-        console.log("Result: ", result);
         if (result.comments.length === 0) {
             return res.status(200).json(
                 new ApiResponse(

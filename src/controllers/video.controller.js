@@ -55,12 +55,10 @@ const publishAVideo = asyncHandler(async (req, res) => {
     let videoFile ;
     let thumbnailFile;
     try {
-        console.log(req.files);
         //upload the file on the cloudinary concurrently
         videoFile = await uploadOnCLoudinary(req.files?.video?.[0].path);
         thumbnailFile = await uploadOnCLoudinary(req.files?.thumbnail?.[0].path);
         // console.log("Thumbnail file: ", thumbnailFile);
-        console.log("Video file: ", videoFile);
         const videoDuration = videoFile?.duration || 0;
         const video = await Video.create({
             videoFile:  { publicId: videoFile?.public_id, url: videoFile?.url } ,
@@ -91,7 +89,6 @@ const publishAVideo = asyncHandler(async (req, res) => {
             //delete the uploaded file if an error occurs
             if(videoFile?.url) await deleteFileFromCloudinary(videoFile?.url, videoFile?.public_id);
             if (thumbnailFile?.url) await deleteFileFromCloudinary(thumbnailFile?.url, thumbnailFile?.public_id);
-            console.log("uploaded files deleted successfully");
             return res.json(
                 new ApiResponse(
                     {},
@@ -174,7 +171,6 @@ const getVideoById = asyncHandler(async (req, res) => {
                 }
             }
         ])
-        console.log("video: ", videoAggregate[0]);
         if(!videoAggregate) throw new ApiError(500, "Video detail not found and error in aggregation");
         
         return res.status(201).json(

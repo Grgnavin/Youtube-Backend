@@ -256,7 +256,6 @@ const getChannelStats = asyncHandler(async (req, res) => {
     //                 ])
     //                 console.log("Stats with videos:", channelStats);
     // }
-    console.log(Stats);
 
     return res.status(200).json(
         new ApiResponse(

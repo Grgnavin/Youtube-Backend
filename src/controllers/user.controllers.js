@@ -133,7 +133,6 @@ const loginUser = asyncHandler(async(req,res) => {
         httpOnly: true,
         secure: true
     }
-    console.log("User logged in successfully");
     return res.status(200)
             .cookie("accessToken", accessToken, options)
             .cookie("refreshToken", refreshToken, options)
@@ -286,7 +285,6 @@ const updateAccountDetails = asyncHandler(async(req,res) => {
 
 const updateAvatarFile = asyncHandler(async(req,res) => {
     const avatarLocalPath = req.file?.path;
-    console.log(req.file.path);
     
     if (!avatarLocalPath) {
         throw new ApiError(401, "Avatar file is missing")
@@ -419,7 +417,6 @@ const channel = await User.aggregate([
         }
     ])
 
-    console.log("channel", channel);
     
     if (!channel?.length) {
         throw new ApiError(404, "Channel doesn't exists..")
