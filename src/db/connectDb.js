@@ -4,7 +4,10 @@ import { DB_NAME } from "../constants.js";
 
 const connectDB = async () => {
     try {
-        const mongoUrl = `${process.env.MONGO_URL}/${DB_NAME} `
+        const mongoUrl = process.env.MONGO_URL;
+        if (!mongoUrl) {
+            throw new Error('MONGO_URL is not defined');
+        }
         const connection = await mongoose.connect(mongoUrl);
         console.log(`MongoDb Connected!! DB HOST:${connection.connection.host}`);
     } catch (error) {
